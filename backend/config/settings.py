@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     # Third-party
     'rest_framework',
     'corsheaders',
+    'rest_framework_simplejwt',
+    'users',
     # Internal apps (to be added)
 ]
 
@@ -119,3 +121,4 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+AUTH_USER_MODEL = 'users.User'

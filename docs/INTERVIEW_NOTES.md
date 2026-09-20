@@ -46,3 +46,42 @@ We need a robust, deterministic backend to handle user management, complex state
   - A: AI generation (especially multi-agent LangGraph workflows) can take 30-90 seconds. Synchronous HTTP requests would time out. Celery allows us to offload the work and notify the user via WebSockets when done.
 - *Q: Why PostgreSQL over MongoDB for a flexible app like this?*
   - A: Travel planning is highly relational (User -> Trip -> Itinerary -> Expenses). Calculating budgets and settling expenses requires ACID compliance. For flexible data like specific user dietary requirements, Postgres' `JSONB` gives us NoSQL flexibility within a relational model.
+
+## Phase 2: Authentication
+
+### 1. What is it?
+We implemented user registration and login using a Custom User Model in Django and JWT (JSON Web Tokens) via `djangorestframework-simplejwt`. The frontend uses a Pinia store and an Axios interceptor to manage tokens and auto-refresh them.
+
+### 2. Why did we use it?
+- **Custom User Model:** In Django, it is highly recommended to start with a custom user model (inheriting from `AbstractUser`) even if you don't need extra fields immediately. It saves massive migration headaches later. We set `USERNAME_FIELD = 'email'` because modern apps prefer email login over arbitrary usernames.
+- **JWT (JSON Web Tokens):** Since Vue and Django are decoupled (running on different ports/containers), session-based authentication (cookies) requires complex CORS and CSRF configuration. JWTs are stateless; the backend doesn't need to query the database to verify the token signature, which improves scalability.
+
+### 3. How does it work?
+- The user logs in via the Vue frontend.
+- Django verifies credentials and returns an `access_token` (short-lived, e.g., 5-15 mins) and a `refresh_token` (long-lived, e.g., 1-7 days).
+- Vue stores these in `localStorage`.
+- Every subsequent Axios request includes the `access_token` in the `Authorization: Bearer <token>` header.
+- If the access token expires (401 response), the Axios interceptor catches the error, uses the `refresh_token` to request a new access token, and retries the original request transparently.
+
+### 4. How does it fit into TripSync?
+Authentication is the foundation. A user must be authenticated to create a trip, invite members, or cast votes. The custom user model allows us to easily add fields like `profile_image` or global user preferences later.
+
+### 5. What alternatives exist?
+- *Session Auth (Cookies):* More secure against XSS, but harder to configure across different domains/ports and less suited for mobile apps.
+- *Token Auth (DRF built-in):* Uses long-lived, non-expiring tokens stored in the database. Less secure because if a token is compromised, it never expires until manually revoked.
+
+### 6. What problems did it solve?
+It solved the problem of secure, stateless communication between a decoupled SPA (Vue) and an API (Django).
+
+### 7. What tradeoffs exist?
+- **Security:** `localStorage` is vulnerable to XSS (Cross-Site Scripting). If an attacker injects malicious JS, they can steal the token. (The more secure, but more complex, alternative is `HttpOnly` cookies for JWTs).
+- **Revocation:** JWTs cannot be easily revoked before they expire because they are stateless. If a user changes their password, the old token remains valid until expiration unless a token blocklist (database lookup) is implemented, which defeats the stateless benefit.
+
+### 8. What could go wrong?
+- Token interceptors creating an infinite loop if the refresh token itself is expired or invalid. (We prevent this by checking `!originalRequest._retry`).
+
+### 9. What questions might an interviewer ask?
+- *Q: Why store tokens in localStorage instead of HttpOnly cookies?*
+  - A: LocalStorage is simpler for SPA architectures and mobile app consumption. However, I am aware of the XSS risk. In a strict enterprise scenario, HttpOnly cookies are better, but for this portfolio piece, LocalStorage with a short-lived access token is standard.
+- *Q: How do you handle token expiration gracefully?*
+  - A: By using an Axios response interceptor that detects a 401 Unauthorized error, pauses the request queue, hits the `/token/refresh/` endpoint, and then replays the failed request.
