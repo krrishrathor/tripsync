@@ -23,6 +23,24 @@ const routes = [
     name: 'Dashboard',
     component: () => import('@/views/Dashboard.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/create',
+    name: 'CreateTrip',
+    component: () => import('@/views/trips/CreateTrip.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id',
+    name: 'TripDashboard',
+    component: () => import('@/views/trips/TripDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/join/:code',
+    name: 'JoinTrip',
+    component: () => import('@/views/trips/JoinTrip.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

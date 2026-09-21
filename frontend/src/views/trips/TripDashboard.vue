@@ -1,0 +1,105 @@
+<template>
+  <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div v-if="tripStore.loading" class="text-center py-12">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+    </div>
+    
+    <div v-else-if="trip" class="space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex justify-between items-start">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">{{ trip.name }}</h1>
+          <p class="text-gray-500 mt-2">{{ trip.description }}</p>
+          <div class="mt-4 flex space-x-4 text-sm text-gray-600">
+            <span v-if="trip.start_date">📅 {{ trip.start_date }} to {{ trip.end_date }}</span>
+            <span v-if="trip.total_budget">💰 {{ trip.currency }} {{ trip.total_budget }}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {{ trip.status }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Invite Section -->
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 min-w-[250px]">
+          <h3 class="text-sm font-medium text-gray-900 mb-2">Invite Friends</h3>
+          <div v-if="trip.invite_code">
+            <div class="flex items-center space-x-2">
+              <input type="text" readonly :value="inviteLink" class="block w-full text-xs border-gray-300 rounded-md shadow-sm bg-white px-2 py-1">
+              <button @click="copyInvite" class="p-1 bg-gray-200 rounded hover:bg-gray-300 text-xs font-medium">Copy</button>
+            </div>
+          </div>
+          <div v-else-if="isOwner">
+            <button @click="generateInvite" class="w-full text-xs bg-blue-600 text-white px-3 py-2 rounded shadow-sm hover:bg-blue-700">Generate Invite Link</button>
+          </div>
+          <div v-else class="text-xs text-gray-500">Only the owner can invite.</div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Members List -->
+        <div class="col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 class="text-lg font-bold text-gray-900 border-b pb-3 mb-4">Members ({{ trip.members?.length }})</h2>
+          <ul class="space-y-3">
+            <li v-for="member in trip.members" :key="member.id" class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-bold text-sm">
+                  {{ member.user.first_name?.[0] || member.user.username[0] }}
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">{{ member.user.first_name }} {{ member.user.last_name }}</p>
+                  <p class="text-xs text-gray-500">{{ member.user.username }}</p>
+                </div>
+              </div>
+              <span v-if="member.role === 'OWNER'" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Owner</span>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Placeholder for later phases -->
+        <div class="col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-center justify-center text-gray-500">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">More coming in later phases</h3>
+            <p class="mt-1 text-sm text-gray-500">Preferences, Destinations, Voting, and AI Itineraries will appear here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { useTripStore } from '@/stores/trip';
+import { useAuthStore } from '@/stores/auth';
+
+const route = useRoute();
+const tripStore = useTripStore();
+const authStore = useAuthStore();
+
+const trip = computed(() => tripStore.currentTrip);
+const isOwner = computed(() => trip.value?.owner?.id === authStore.user?.id);
+
+const inviteLink = computed(() => {
+  if (!trip.value?.invite_code) return '';
+  return `${window.location.origin}/join/${trip.value.invite_code}`;
+});
+
+onMounted(async () => {
+  if (!authStore.user) {
+    await authStore.fetchUser();
+  }
+  await tripStore.fetchTripDetail(route.params.id);
+});
+
+const generateInvite = async () => {
+  await tripStore.generateInvite(trip.value.id);
+};
+
+const copyInvite = () => {
+  navigator.clipboard.writeText(inviteLink.value);
+  alert('Invite link copied!');
+};
+</script>

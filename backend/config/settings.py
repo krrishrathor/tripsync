@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'users',
+    'trips',
     # Internal apps (to be added)
 ]
 

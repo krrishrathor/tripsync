@@ -85,3 +85,30 @@ It solved the problem of secure, stateless communication between a decoupled SPA
   - A: LocalStorage is simpler for SPA architectures and mobile app consumption. However, I am aware of the XSS risk. In a strict enterprise scenario, HttpOnly cookies are better, but for this portfolio piece, LocalStorage with a short-lived access token is standard.
 - *Q: How do you handle token expiration gracefully?*
   - A: By using an Axios response interceptor that detects a 401 Unauthorized error, pauses the request queue, hits the `/token/refresh/` endpoint, and then replays the failed request.
+
+## Phase 3: Trip Creation & Members
+
+### 1. What is it?
+We built the core domain logic for `Trip` and `TripMember` models. The API allows creating a trip, fetching a list of trips the user is part of, retrieving trip details (with member info), generating an invite code, and joining a trip via that code.
+
+### 2. Why did we use it?
+Everything in TripSync is scoped to a "Trip". A many-to-many relationship via a "through" table (`TripMember`) is used to attach users to a trip. The through table allows us to store extra data, specifically the `role` (OWNER vs MEMBER) and `joined_at` timestamp.
+
+### 3. How does it work?
+- When a user creates a trip, they are automatically added to `TripMember` with the role `OWNER`.
+- The `Trip` model overrides `save()` to auto-generate an 8-character url-safe `invite_code` using Python's `secrets` module if one doesn't exist.
+- A custom permission `IsTripMemberOrOwner` ensures users can only access trips they have joined, preventing IDOR (Insecure Direct Object Reference) vulnerabilities.
+- To join a trip, a user POSTs to `/join/<invite_code>/`. The view checks if the trip exists and if the user is already a member before adding them.
+
+### 4. How does it fit into TripSync?
+This is the collaborative container. The `Trip` UUID will be used later as the primary filter for Preferences, Votes, Budget, and LangGraph state.
+
+### 5. What alternatives exist?
+- *UUID invite links:* We used a short 8-char `secrets.token_urlsafe` for invite codes instead of the full Trip UUID because short codes are easier to share via WhatsApp/SMS. 
+
+### 6. What problems did it solve?
+- Ensures strict data isolation between different groups of users.
+- Prevents duplicate memberships using Django's `unique_together` meta class.
+
+### 7. What tradeoffs exist?
+- Since anyone with the link can join (if they have an account), it might be less secure than explicit email invites. However, for a consumer travel app, friction-less short-link invites usually provide a better UX. We can regenerate the invite code if a link is leaked.
