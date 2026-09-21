@@ -112,3 +112,29 @@ This is the collaborative container. The `Trip` UUID will be used later as the p
 
 ### 7. What tradeoffs exist?
 - Since anyone with the link can join (if they have an account), it might be less secure than explicit email invites. However, for a consumer travel app, friction-less short-link invites usually provide a better UX. We can regenerate the invite code if a link is leaked.
+
+## Phase 4: Preferences
+
+### 1. What is it?
+We built a deterministic data model to capture individual travel constraints (budget, dietary requirements, interests, travel style) and a `PreferenceAggregationService` to calculate group compatibility (median budget, shared interests, conflicting requirements).
+
+### 2. Why did we use it?
+This is the core business differentiator. Instead of blindly sending a 5-person unstructured JSON blob to an LLM and hoping it generates a good itinerary, we use deterministic Python code (Math/Logic) to calculate the "Group Truth". 
+- An LLM shouldn't be doing math (e.g., finding the intersection of 5 users' budgets and calculating a 50% variance).
+- We extract the exact conflicting parameters (e.g. "User A wants relaxed, User B wants packed") deterministically, which we can then pass to the LLM later as strict, unambiguous rules.
+
+### 3. How does it work?
+- A `Preference` model stores individual preferences using `JSONField` for arrays (interests, food).
+- The `PreferenceAggregationService` fetches all preferences for a trip.
+- It calculates `max`, `mean`, and `median` for budgets.
+- It uses Python's `collections.Counter` to find overlapping interests and dietary requirements.
+- It detects conflicts (e.g., if the gap between max budgets is > 50% of the median).
+
+### 4. How does it fit into TripSync?
+These aggregated preferences will act as the "Search Filter" for the Destination engine in Phase 5, and as the constraints for the LangGraph AI in Phase 8.
+
+### 5. What alternatives exist?
+- *Using an LLM for aggregation:* We could just prompt an LLM: "Here are 5 users' preferences, what should we do?". *Tradeoff:* LLMs hallucinate math, they are slow, and expensive. Deterministic aggregation is instant, free, and perfectly accurate.
+
+### 6. What problems did it solve?
+It prevents AI drift and provides instant, mathematically correct feedback to the frontend about group conflicts.
