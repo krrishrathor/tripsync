@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'users',
     'trips',
-    'preferences',
+    'trip_preferences',
     # Internal apps (to be added)
 ]
 

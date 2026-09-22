@@ -3,53 +3,39 @@ import api from '@/api/axios';
 
 export const usePreferenceStore = defineStore('preference', {
   state: () => ({
-    myPreferences: null,
-    groupPreferences: null,
+    myPreference: null,
+    groupAggregate: null,
     loading: false,
-    error: null
+    aggregateLoading: false,
   }),
-  
+
   actions: {
-    async fetchMyPreferences(tripId) {
+    async fetchMyPreference(tripId) {
       this.loading = true;
       try {
-        const response = await api.get(`/preferences/trip/${tripId}/my-preferences/`);
-        this.myPreferences = response.data;
-      } catch (error) {
-        if (error.response?.status === 404) {
-          this.myPreferences = null; // No preferences set yet
-        } else {
-          this.error = error;
-        }
+        const response = await api.get(`/trips/${tripId}/preferences/me/`);
+        this.myPreference = response.status === 204 ? null : response.data;
+      } catch (err) {
+        this.myPreference = null;
       } finally {
         this.loading = false;
       }
     },
-    
-    async saveMyPreferences(tripId, data) {
-      this.loading = true;
+
+    async savePreference(tripId, data) {
+      const response = await api.put(`/trips/${tripId}/preferences/me/`, data);
+      this.myPreference = response.data;
+      return response.data;
+    },
+
+    async fetchAggregate(tripId) {
+      this.aggregateLoading = true;
       try {
-        const response = await api.post(`/preferences/trip/${tripId}/my-preferences/`, data);
-        this.myPreferences = response.data;
-        return response.data;
-      } catch (error) {
-        this.error = error;
-        throw error;
+        const response = await api.get(`/trips/${tripId}/preferences/aggregate/`);
+        this.groupAggregate = response.data;
       } finally {
-        this.loading = false;
+        this.aggregateLoading = false;
       }
     },
-    
-    async fetchGroupPreferences(tripId) {
-      this.loading = true;
-      try {
-        const response = await api.get(`/preferences/trip/${tripId}/group/`);
-        this.groupPreferences = response.data;
-      } catch (error) {
-        this.error = error;
-      } finally {
-        this.loading = false;
-      }
-    }
-  }
+  },
 });

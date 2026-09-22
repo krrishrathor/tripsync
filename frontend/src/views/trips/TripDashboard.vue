@@ -54,10 +54,42 @@
           </ul>
         </div>
         
-        <!-- Preferences Area -->
-        <div class="col-span-2 space-y-6">
-          <PreferenceForm :tripId="trip.id" :currency="trip.currency" @saved="onPreferencesSaved" />
-          <GroupPreferences ref="groupPrefsRef" :tripId="trip.id" :currency="trip.currency" />
+        <!-- Action Cards -->
+        <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- My Preferences -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="text-2xl">🎯</span>
+              <h3 class="font-semibold text-gray-900">Your Preferences</h3>
+            </div>
+            <p class="text-sm text-gray-500 flex-1">Tell the group your budget, interests, and travel style so we can find the perfect destination.</p>
+            <button @click="$router.push(`/trips/${trip.id}/preferences`)"
+              class="mt-4 w-full text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+              Set My Preferences →
+            </button>
+          </div>
+
+          <!-- Group Compatibility -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="text-2xl">📊</span>
+              <h3 class="font-semibold text-gray-900">Group Compatibility</h3>
+            </div>
+            <p class="text-sm text-gray-500 flex-1">See how well the group's preferences align — budgets, interests, diet, and detected conflicts.</p>
+            <button @click="$router.push(`/trips/${trip.id}/group-compatibility`)"
+              class="mt-4 w-full text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium">
+              View Group Report →
+            </button>
+          </div>
+
+          <!-- Destination Discovery (coming soon) -->
+          <div class="bg-white rounded-xl border border-dashed border-gray-200 p-6 flex flex-col col-span-1 sm:col-span-2 opacity-60">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="text-2xl">🗺️</span>
+              <h3 class="font-semibold text-gray-900">Destination Discovery & Voting</h3>
+            </div>
+            <p class="text-sm text-gray-500">Available in Phase 5 — after all members submit preferences.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -65,17 +97,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTripStore } from '@/stores/trip';
 import { useAuthStore } from '@/stores/auth';
-import PreferenceForm from './components/PreferenceForm.vue';
-import GroupPreferences from './components/GroupPreferences.vue';
 
 const route = useRoute();
 const tripStore = useTripStore();
 const authStore = useAuthStore();
-const groupPrefsRef = ref(null);
 
 const trip = computed(() => tripStore.currentTrip);
 const isOwner = computed(() => trip.value?.owner?.id === authStore.user?.id);
@@ -99,11 +128,5 @@ const generateInvite = async () => {
 const copyInvite = () => {
   navigator.clipboard.writeText(inviteLink.value);
   alert('Invite link copied!');
-};
-
-const onPreferencesSaved = () => {
-  if (groupPrefsRef.value) {
-    groupPrefsRef.value.fetchData();
-  }
 };
 </script>

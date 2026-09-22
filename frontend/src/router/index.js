@@ -41,6 +41,18 @@ const routes = [
     name: 'JoinTrip',
     component: () => import('@/views/trips/JoinTrip.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id/preferences',
+    name: 'Preferences',
+    component: () => import('@/views/trips/Preferences.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id/group-compatibility',
+    name: 'GroupCompatibility',
+    component: () => import('@/views/trips/GroupCompatibility.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

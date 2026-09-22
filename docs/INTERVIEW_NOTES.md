@@ -138,3 +138,41 @@ These aggregated preferences will act as the "Search Filter" for the Destination
 
 ### 6. What problems did it solve?
 It prevents AI drift and provides instant, mathematically correct feedback to the frontend about group conflicts.
+
+## Phase 4: Individual Preferences & Group Aggregation
+
+### 1. What is it?
+Every trip member submits a structured `MemberPreference` record: their budget range, travel style, food restrictions, interests, accommodation preference, and activity intensity. The aggregation service (`aggregation.py`) reads all submitted preferences and produces a group-level summary with conflicts — entirely in deterministic Python code.
+
+### 2. Why is this important?
+This is the core differentiator of TripSync. Many apps just dump all user inputs into an LLM prompt and say "find a matching destination." That is:
+- Non-reproducible (LLM output changes each call)
+- Expensive (sends hundreds of tokens every time)
+- Untestable (you can't unit-test a prompt)
+
+TripSync's preference aggregation is deterministic Python code. The LLM (in Phase 8) will receive the **output** of this function — clean, structured, already-computed facts — not raw user data.
+
+### 3. How does the aggregation work?
+1. Fetch all `MemberPreference` rows for the trip.
+2. **Budget:** Compute median, lowest, and highest of `max_budget`. Flag a conflict if standard deviation > 50% of median (wide spread).
+3. **Interests:** Use `Counter` to rank interests by popularity. Mark as "popular" if ≥50% of members share it.
+4. **Travel style / transport / accommodation / intensity:** `Counter` for dominant choice + distribution. Flag conflict if minority share ≥ 30%.
+5. **Diet:** Identify the most restrictive diet present (vegan > vegetarian > halal > non-veg). Flag if mixed.
+6. Return a single structured dict safe to serialise as JSON.
+
+### 4. Data model decisions
+- Key scalars (budget, travel_style, activity_intensity) are **dedicated DB columns** — queryable, indexable, and aggregatable at the DB level.
+- Multi-select lists (interests, food_allergies) are **JSONField arrays** — validated by the serializer, flexible enough to extend without schema migration.
+- A flat JSON blob for everything would make aggregation queries, validation errors, and indexing far harder.
+
+### 5. Security & validation
+- Non-members cannot submit preferences (403 Forbidden).
+- Preferences are locked after `trip.status != 'PLANNING'` — no post-selection gaming.
+- `interests` values are validated against a whitelist; invalid values return 400.
+- `min_budget > max_budget` is rejected at the serializer layer.
+
+### 6. Interview questions
+- *Q: Why not just send all preferences to the LLM and let it decide?*
+  - A: LLMs are stochastic and untestable. Budget calculations must be reproducible and auditable. We use Python for facts, LLMs for synthesis and generation.
+- *Q: What's the difference between "popular" and "common" interests?*
+  - A: Popular = ≥50% of members share it (good signal for destination selection). Common = 100% of members share it (safe baseline for every activity in the itinerary).
