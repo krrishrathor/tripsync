@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'users',
     'trips',
     'trip_preferences',
+    'destinations',
     # Internal apps (to be added)
 ]
 
