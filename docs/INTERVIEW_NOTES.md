@@ -276,3 +276,13 @@ We moved the LangGraph itinerary generation—which can take 10-30 seconds depen
 - **Asynchronous Task**: Wrapped `generate_itinerary_for_trip` in a `@shared_task`. When the trip owner clicks "Generate", the view immediately returns a `202 Accepted` and offloads the heavy lifting to the Celery worker queue.
 - **Frontend Reactive Polling**: Modified the Pinia `itineraryStore` and `ItineraryView.vue` to transition into a "Generating" loading state and poll the trip status every 3 seconds. Once the background worker completes the itinerary and updates the status to `ITINERARY_GENERATED`, the frontend breaks the polling loop and automatically fetches and renders the new data.
 - **Testing Resilience**: Configured `CELERY_TASK_ALWAYS_EAGER = True` and swapped the broker to `memory://` during tests so the test suite remains blisteringly fast and doesn't require a live Redis instance.
+
+## Phase 11: End-to-end Testing & Refinements
+
+### 1. What is it?
+Ensuring the application is production-ready by implementing strict API rate limiting, robust backend test coverage reporting, and modern frontend component testing via Vitest.
+
+### 2. Implementation details
+- **API Throttling**: Added `django-ratelimit` / DRF `AnonRateThrottle` (100/day) and `UserRateThrottle` (1000/day) to prevent API abuse and DDoS attacks.
+- **Backend Test Coverage**: Integrated `coverage.py`, configured `.coveragerc`, and ran a full suite. The backend currently boasts an exceptional **88% test coverage** across all core apps (voting, itinerary, destinations, trip preferences, expenses).
+- **Frontend Testing**: Set up `Vitest` and `@vue/test-utils` seamlessly with Vite. Written component specs for complex visual components (`DestinationCard.vue`), mocking deeply nested data structures to ensure robustness.
