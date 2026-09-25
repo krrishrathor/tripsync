@@ -82,13 +82,17 @@
             </button>
           </div>
 
-          <!-- Destination Discovery (coming soon) -->
-          <div class="bg-white rounded-xl border border-dashed border-gray-200 p-6 flex flex-col col-span-1 sm:col-span-2 opacity-60">
+          <!-- Destination Discovery (live in Phase 5) -->
+          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col col-span-1 sm:col-span-2">
             <div class="flex items-center gap-3 mb-3">
               <span class="text-2xl">🗺️</span>
               <h3 class="font-semibold text-gray-900">Destination Discovery & Voting</h3>
             </div>
-            <p class="text-sm text-gray-500">Available in Phase 5 — after all members submit preferences.</p>
+            <p class="text-sm text-gray-500 flex-1">Browse destinations ranked by compatibility with your group's preferences, then vote for your favourites.</p>
+            <button @click="$router.push(`/trips/${trip.id}/destinations`)"
+              class="mt-4 w-full text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium">
+              Discover Destinations →
+            </button>
           </div>
         </div>
       </div>

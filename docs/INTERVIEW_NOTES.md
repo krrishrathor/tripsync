@@ -176,3 +176,43 @@ TripSync's preference aggregation is deterministic Python code. The LLM (in Phas
   - A: LLMs are stochastic and untestable. Budget calculations must be reproducible and auditable. We use Python for facts, LLMs for synthesis and generation.
 - *Q: What's the difference between "popular" and "common" interests?*
   - A: Popular = ≥50% of members share it (good signal for destination selection). Common = 100% of members share it (safe baseline for every activity in the itinerary).
+
+## Phase 5: Destination Dataset & Compatibility Engine
+
+### 1. What is it?
+A seeded database of 25 travel destinations (23 Indian, 2 international) and a deterministic scoring engine that ranks them against a group's aggregated preferences. No LLM is involved in generating scores.
+
+### 2. Why deterministic scoring (not AI)?
+This is a crucial architecture decision. The compatibility score is:
+- **Reproducible:** Same inputs always produce the same score. You can A/B test or debug it.
+- **Explainable:** You can point to exactly why Goa scored 87% — e.g., "budget_score=0.92, interest_score=0.94".
+- **Testable:** 8 unit tests cover budget, interest, activity, season, and edge cases.
+- **Fast:** Scores 25 destinations in <10ms. An LLM call would take 3-10 seconds.
+- **Auditable:** A product manager can review `scoring.py` and understand the formula.
+
+### 3. How does the scoring formula work?
+```
+overall_score = (
+    budget_score        * 0.30 +
+    interest_score      * 0.25 +
+    duration_score      * 0.15 +
+    activity_score      * 0.15 +
+    transport_score     * 0.10 +
+    accommodation_score * 0.05
+) * seasonal_multiplier
+```
+Weights are declared as module-level constants, documented, and asserted to sum to 1.0.
+
+### 4. Why not store scores in the DB?
+Scores depend on group preferences which change until voting begins. Storing scores would require invalidating them on every preference update. Instead, we:
+- Compute on demand (fast enough)
+- Cache in Redis for 10 minutes per trip (`cache_key = f"trip_compat_{trip_id}"`)
+- Bust cache with `?refresh=1` when a member updates preferences
+
+### 5. Interview questions
+- *Q: How do you handle a group where half want beaches and half want mountains?*
+  - A: Interest score = Jaccard overlap between destination tags and "popular interests" (≥50% of members). A beach destination would score ~0.5 on interest if only half the group likes beaches. The conflict is also surfaced explicitly in the `conflicts` list.
+- *Q: What happens if no preferences are submitted yet?*
+  - A: The engine returns neutral scores (0.5-0.7) for all factors with reason strings explaining the missing data. The UI still renders cards, just with "No preference data yet" explanations.
+- *Q: Why a management command instead of a fixture for seed data?*
+  - A: Management commands are idempotent (`update_or_create`), can be extended with arguments (e.g., `--country=Indonesia`), and avoid the Django fixture format's quirks with `auto_now_add` fields.

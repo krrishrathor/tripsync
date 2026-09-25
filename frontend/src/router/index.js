@@ -53,6 +53,12 @@ const routes = [
     name: 'GroupCompatibility',
     component: () => import('@/views/trips/GroupCompatibility.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id/destinations',
+    name: 'DestinationDiscovery',
+    component: () => import('@/views/trips/DestinationDiscovery.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 
