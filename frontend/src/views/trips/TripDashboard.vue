@@ -54,45 +54,61 @@
           </ul>
         </div>
         
-        <!-- Action Cards -->
-        <div class="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- My Preferences -->
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="text-2xl">🎯</span>
-              <h3 class="font-semibold text-gray-900">Your Preferences</h3>
-            </div>
-            <p class="text-sm text-gray-500 flex-1">Tell the group your budget, interests, and travel style so we can find the perfect destination.</p>
-            <button @click="$router.push(`/trips/${trip.id}/preferences`)"
-              class="mt-4 w-full text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
-              Set My Preferences →
-            </button>
+        <!-- Action Cards / Dashboard Main Area -->
+        <div class="col-span-2 space-y-6">
+          <!-- Finalized Destination Banner -->
+          <div v-if="trip.status === 'DESTINATION_SELECTED' || trip.status === 'ITINERARY_GENERATED'" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 shadow-sm p-6 relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-10 text-9xl -mt-4 -mr-4">🎉</div>
+            <h2 class="text-xs font-bold text-green-800 uppercase tracking-wider mb-1">Destination Locked In!</h2>
+            <h3 class="text-3xl font-bold text-gray-900 mb-2">{{ trip.selected_destination_name || 'Destination Selected' }}</h3>
+            <p class="text-sm text-gray-700 max-w-md relative z-10">
+              The group has spoken and the owner has finalized the destination. 
+              The voting phase is now closed. Next up: Itinerary Planning!
+            </p>
           </div>
-
-          <!-- Group Compatibility -->
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="text-2xl">📊</span>
-              <h3 class="font-semibold text-gray-900">Group Compatibility</h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <!-- My Preferences -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">🎯</span>
+                <h3 class="font-semibold text-gray-900">Your Preferences</h3>
+              </div>
+              <p class="text-sm text-gray-500 flex-1">Tell the group your budget, interests, and travel style so we can find the perfect destination.</p>
+              <button @click="$router.push(`/trips/${trip.id}/preferences`)"
+                class="mt-4 w-full text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                Set My Preferences →
+              </button>
             </div>
-            <p class="text-sm text-gray-500 flex-1">See how well the group's preferences align — budgets, interests, diet, and detected conflicts.</p>
-            <button @click="$router.push(`/trips/${trip.id}/group-compatibility`)"
-              class="mt-4 w-full text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium">
-              View Group Report →
-            </button>
-          </div>
 
-          <!-- Destination Discovery (live in Phase 5) -->
-          <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col col-span-1 sm:col-span-2">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="text-2xl">🗺️</span>
-              <h3 class="font-semibold text-gray-900">Destination Discovery & Voting</h3>
+            <!-- Group Compatibility -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">📊</span>
+                <h3 class="font-semibold text-gray-900">Group Compatibility</h3>
+              </div>
+              <p class="text-sm text-gray-500 flex-1">See how well the group's preferences align — budgets, interests, diet, and detected conflicts.</p>
+              <button @click="$router.push(`/trips/${trip.id}/group-compatibility`)"
+                class="mt-4 w-full text-sm bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-700 font-medium">
+                View Group Report →
+              </button>
             </div>
-            <p class="text-sm text-gray-500 flex-1">Browse destinations ranked by compatibility with your group's preferences, then vote for your favourites.</p>
-            <button @click="$router.push(`/trips/${trip.id}/destinations`)"
-              class="mt-4 w-full text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium">
-              Discover Destinations →
-            </button>
+
+            <!-- Destination Discovery & Voting -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col col-span-1 sm:col-span-2">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">🗺️</span>
+                <h3 class="font-semibold text-gray-900">Destination Discovery & Voting</h3>
+              </div>
+              <p class="text-sm text-gray-500 flex-1">
+                <span v-if="trip.status === 'PLANNING'">Browse destinations ranked by compatibility with your group's preferences, then vote for your favourites.</span>
+                <span v-else>View the destinations and the final voting results.</span>
+              </p>
+              <button @click="$router.push(`/trips/${trip.id}/destinations`)"
+                class="mt-4 w-full text-sm bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 font-medium">
+                {{ trip.status === 'PLANNING' ? 'Discover & Vote →' : 'View Final Results →' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>

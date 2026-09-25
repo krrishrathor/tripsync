@@ -23,6 +23,13 @@ class Trip(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PLANNING')
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_trips')
     invite_code = models.CharField(max_length=10, unique=True, blank=True)
+    # Set after the group votes and the owner confirms
+    selected_destination = models.ForeignKey(
+        'travel_destinations.Destination',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='selected_for_trips',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

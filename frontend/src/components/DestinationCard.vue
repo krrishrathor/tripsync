@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col">
     <!-- Image + Score Badge -->
-    <div class="relative h-48 bg-gray-100 overflow-hidden">
+    <div class="relative h-48 bg-gray-100 overflow-hidden shrink-0">
       <img
         v-if="scored.destination.image_url"
         :src="scored.destination.image_url"
@@ -18,23 +18,23 @@
 
       <!-- Score ring -->
       <div class="absolute top-3 right-3">
-        <div class="relative w-14 h-14">
+        <div class="relative w-14 h-14 bg-white/20 rounded-full backdrop-blur-sm">
           <svg class="w-14 h-14 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" stroke-width="2.5"/>
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2.5"/>
             <circle cx="18" cy="18" r="15.9" fill="none"
               :stroke="scoreColor" stroke-width="2.5"
               :stroke-dasharray="`${scored.overall} ${100 - scored.overall}`"
               stroke-linecap="round"/>
           </svg>
           <div class="absolute inset-0 flex items-center justify-center">
-            <span class="text-xs font-bold text-white drop-shadow">{{ scored.overall }}%</span>
+            <span class="text-xs font-bold text-white drop-shadow-md">{{ scored.overall }}%</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Content -->
-    <div class="p-5">
+    <div class="p-5 flex-1 flex flex-col">
       <div class="flex items-start justify-between mb-1">
         <h3 class="font-bold text-gray-900 text-lg leading-tight">{{ scored.destination.name }}</h3>
         <span class="text-xs text-gray-400 ml-2 mt-1 whitespace-nowrap">{{ scored.destination.region }}</span>
@@ -42,7 +42,7 @@
 
       <!-- Cost estimate -->
       <p class="text-sm text-blue-600 font-medium mb-2">
-        ₹{{ scored.destination.estimated_daily_cost_min.toLocaleString('en-IN') }}–{{ scored.destination.estimated_daily_cost_max.toLocaleString('en-IN') }}/day per person
+        ₹{{ scored.destination.estimated_daily_cost_min.toLocaleString('en-IN') }}–{{ scored.destination.estimated_daily_cost_max.toLocaleString('en-IN') }}/day
       </p>
 
       <!-- Description -->
@@ -55,20 +55,6 @@
         <FactorBar label="Activity" :score="scored.activity.score" />
       </div>
 
-      <!-- Highlights -->
-      <div v-if="scored.highlights?.length" class="mb-3">
-        <p v-for="h in scored.highlights.slice(0,2)" :key="h" class="text-xs text-green-700 flex items-start gap-1">
-          <span class="mt-0.5">✓</span><span>{{ h }}</span>
-        </p>
-      </div>
-
-      <!-- Conflicts -->
-      <div v-if="scored.conflicts?.length" class="mb-3">
-        <p v-for="c in scored.conflicts.slice(0,2)" :key="c" class="text-xs text-amber-700 flex items-start gap-1">
-          <span class="mt-0.5">⚠</span><span class="line-clamp-2">{{ c }}</span>
-        </p>
-      </div>
-
       <!-- Tags -->
       <div class="flex flex-wrap gap-1 mb-4">
         <span
@@ -78,12 +64,60 @@
         >{{ tag }}</span>
       </div>
 
+      <div class="flex-1"></div>
+
       <!-- Match label -->
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between mb-4">
         <span class="text-xs font-semibold px-2.5 py-1 rounded-full" :class="matchClass">
           {{ matchLabel }}
         </span>
         <span class="text-xs text-gray-400">{{ scored.destination.typical_duration_days_min }}–{{ scored.destination.typical_duration_days_max }} days</span>
+      </div>
+
+      <!-- Voting Section -->
+      <div class="border-t border-gray-100 pt-4 mt-auto">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-sm font-medium text-gray-700">
+            Votes: <span class="text-indigo-600">{{ voteCount }}</span>
+          </div>
+          <div v-if="voters.length" class="flex -space-x-2">
+            <div v-for="(voter, i) in voters.slice(0, 5)" :key="i"
+                 class="w-6 h-6 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-600 uppercase"
+                 :title="voter.first_name || voter.username">
+              {{ (voter.first_name || voter.username).charAt(0) }}
+            </div>
+            <div v-if="voters.length > 5" class="w-6 h-6 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-[10px] text-gray-500">
+              +{{ voters.length - 5 }}
+            </div>
+          </div>
+        </div>
+
+        <div v-if="tripStatus === 'PLANNING'" class="flex flex-col gap-2">
+          <!-- User Vote Button -->
+          <button
+            @click="$emit('vote')"
+            :disabled="isVoting"
+            class="w-full py-2 rounded-lg text-sm font-medium transition-colors"
+            :class="isMyVote 
+              ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' 
+              : 'border border-gray-300 text-gray-700 hover:bg-gray-50'"
+          >
+            <span v-if="isVoting" class="inline-block animate-spin mr-1">⌛</span>
+            {{ isMyVote ? '✓ You Voted For This' : 'Vote for this' }}
+          </button>
+
+          <!-- Owner Select Button -->
+          <button
+            v-if="isOwner"
+            @click="$emit('select-final')"
+            class="w-full py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors"
+          >
+            Lock in as Final Destination
+          </button>
+        </div>
+        <div v-else-if="tripStatus === 'DESTINATION_SELECTED' && isSelected" class="w-full py-2 rounded-lg text-sm font-bold bg-green-100 text-green-800 text-center">
+          🎉 Selected Destination
+        </div>
       </div>
     </div>
   </div>
@@ -95,13 +129,24 @@ import { computed, defineComponent, h } from 'vue';
 const props = defineProps({
   scored: { type: Object, required: true },
   rank: { type: Number, required: true },
+  
+  // Voting props
+  voteCount: { type: Number, default: 0 },
+  voters: { type: Array, default: () => [] },
+  isMyVote: { type: Boolean, default: false },
+  isOwner: { type: Boolean, default: false },
+  tripStatus: { type: String, default: 'PLANNING' },
+  isVoting: { type: Boolean, default: false },
+  isSelected: { type: Boolean, default: false },
 });
+
+defineEmits(['vote', 'select-final']);
 
 const scoreColor = computed(() => {
   const s = props.scored.overall;
-  if (s >= 75) return '#22c55e';
-  if (s >= 55) return '#f59e0b';
-  return '#ef4444';
+  if (s >= 75) return '#4ade80'; // brighter green for dark bg ring
+  if (s >= 55) return '#fbbf24'; // brighter yellow
+  return '#f87171'; // brighter red
 });
 
 const matchLabel = computed(() => {
@@ -138,7 +183,7 @@ const FactorBar = defineComponent({
       h('div', { class: 'flex-1 bg-gray-100 rounded-full h-1.5' },
         [h('div', { class: `h-1.5 rounded-full transition-all ${color.value}`, style: { width: `${pct.value}%` } })]
       ),
-      h('span', { class: 'text-xs text-gray-500 w-8 text-right' }, `${pct.value}%`),
+      h('span', { class: 'text-xs text-gray-500 w-8 text-right font-medium' }, `${pct.value}%`),
     ]);
   },
 });
