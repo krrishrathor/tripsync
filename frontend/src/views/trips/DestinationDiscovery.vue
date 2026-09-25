@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDestinationStore } from '@/stores/destination';
 import { useVoteStore } from '@/stores/vote';
@@ -137,6 +137,13 @@ onMounted(async () => {
     destStore.fetchCompatible(tripId),
     voteStore.fetchSummary(tripId)
   ]);
+  
+  // Real-time updates via WebSockets
+  voteStore.connectWebSocket(tripId);
+});
+
+onUnmounted(() => {
+  voteStore.disconnectWebSocket();
 });
 
 const refresh = async () => {

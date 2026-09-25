@@ -230,3 +230,15 @@ A voting mechanism that allows each trip member to pick their favorite destinati
 - **Frontend State**: Added `vote.js` Pinia store to handle summary fetching and optimistic UI. Display progress bar, individual voter chips on Destination Cards, and dynamic states (Voting Open vs Closed).
 - **Testing**: 17 unit tests verifying IDEMPOTENCY, ORM aggregation, and permission blocks (non-owners selecting destinations, non-members voting, etc.).
 
+
+## Phase 7: WebSockets & Real-time Collaboration
+
+### 1. What is it?
+We integrated Django Channels and Redis to provide real-time updates when users cast votes or when the trip owner locks in a destination. Members on the `DestinationDiscovery` page see votes tick up instantly without refreshing the page.
+
+### 2. Implementation details
+- **Infrastructure**: Installed `channels`, `daphne`, and `channels-redis`. Reconfigured Django to run as an ASGI application. Redis acts as the Channel Layer backend.
+- **WebSocket Consumer**: `VoteConsumer` in `voting/consumers.py` listens to the `trip_votes_<trip_id>` group. We don't require the WebSocket itself to be authenticated because it only acts as a one-way pipe for broadcast events; all actual state changes (voting) are still done securely over authenticated REST POST requests.
+- **Service Layer Integration**: Whenever `cast_or_change_vote`, `remove_vote`, or `select_destination` succeeds, the backend triggers an `async_to_sync(channel_layer.group_send)` to broadcast the event.
+- **Frontend Reactive Store**: Pinia `voteStore` opens the WebSocket on mount of the `DestinationDiscovery` view. When it receives a `vote_update` message, it reactively merges the generic broadcast summary with the current user's local `my_vote` state to instantly update the UI.
+- **Testing**: Overrode `CHANNEL_LAYERS` in `settings.py` to use `InMemoryChannelLayer` when `sys.argv` contains `'test'` to prevent Redis connection errors during CI/CD or local test runs outside of docker.

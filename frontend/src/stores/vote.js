@@ -6,6 +6,7 @@ export const useVoteStore = defineStore('vote', {
     summary: null,       // full GET /votes/ response
     loading: false,
     casting: false,
+    socket: null,
   }),
 
   getters: {
@@ -27,9 +28,49 @@ export const useVoteStore = defineStore('vote', {
       }
     },
 
+    connectWebSocket(tripId) {
+      if (this.socket) {
+        this.socket.close();
+      }
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      const wsUrl = baseUrl.replace(/^http/, 'ws').replace('/api', `/ws/trips/${tripId}/votes/`);
+      
+      this.socket = new WebSocket(wsUrl);
+      
+      this.socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'vote_update') {
+          // Keep my_vote from the current state because broadcast_vote_update doesn't send it
+          const myVote = this.summary?.my_vote;
+          this.summary = data.summary;
+          if (myVote) {
+            this.summary.my_vote = myVote;
+          }
+        } else if (data.type === 'destination_selected') {
+          import('@/stores/trip').then(({ useTripStore }) => {
+             const tripStore = useTripStore();
+             tripStore.fetchTripDetail(tripId);
+          });
+          this.fetchSummary(tripId);
+        }
+      };
+      
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    },
+
+    disconnectWebSocket() {
+      if (this.socket) {
+        this.socket.close();
+        this.socket = null;
+      }
+    },
+
     async castVote(tripId, destinationId) {
       this.casting = true;
       try {
+        // Optimistic UI could be added here, but the WebSocket will also quickly send the update.
         await api.post(`/trips/${tripId}/votes/`, { destination_id: destinationId });
         await this.fetchSummary(tripId);
       } finally {

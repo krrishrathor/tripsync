@@ -36,12 +36,15 @@ def cast_or_change_vote(trip: Trip, user, destination_id: int) -> Vote:
             vote.destination = destination
             vote.save(update_fields=['destination', 'updated_at'])
 
+    broadcast_vote_update(trip)
     return vote
 
 
 def remove_vote(trip: Trip, user) -> bool:
     """Remove the user's vote. Returns True if a vote existed."""
     deleted, _ = Vote.objects.filter(trip=trip, user=user).delete()
+    if deleted > 0:
+        broadcast_vote_update(trip)
     return deleted > 0
 
 
@@ -93,7 +96,7 @@ def get_vote_summary(trip: Trip, requesting_user) -> dict:
             'first_name': vote.user.first_name,
             'last_name':  vote.user.last_name,
         })
-        if vote.user_id == requesting_user.id:
+        if requesting_user and vote.user_id == requesting_user.id:
             dest_map[did]['current_user_voted'] = True
 
     # Sort by vote count descending
@@ -101,12 +104,14 @@ def get_vote_summary(trip: Trip, requesting_user) -> dict:
     for r in results:
         r['vote_pct'] = round(r['vote_count'] / total_members * 100, 1) if total_members else 0
 
-    # My vote
-    my_vote_obj = Vote.objects.filter(trip=trip, user=requesting_user).select_related('destination').first()
-    my_vote = {
-        'destination_id':   my_vote_obj.destination_id   if my_vote_obj else None,
-        'destination_name': my_vote_obj.destination.name if my_vote_obj else None,
-    }
+    # My vote (only if requesting_user is provided)
+    my_vote = None
+    if requesting_user:
+        my_vote_obj = Vote.objects.filter(trip=trip, user=requesting_user).select_related('destination').first()
+        my_vote = {
+            'destination_id':   my_vote_obj.destination_id   if my_vote_obj else None,
+            'destination_name': my_vote_obj.destination.name if my_vote_obj else None,
+        }
 
     return {
         'total_voters':       total_voters,
@@ -116,6 +121,38 @@ def get_vote_summary(trip: Trip, requesting_user) -> dict:
         'results':            results,
     }
 
+def broadcast_vote_update(trip: Trip):
+    """
+    Computes a generic summary (without user-specific 'my_vote')
+    and broadcasts it to the trip's WebSocket group.
+    """
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    from travel_destinations.serializers import DestinationSerializer
+
+    summary = get_vote_summary(trip, None)
+    
+    # Serialize destinations
+    serialized_results = []
+    for r in summary['results']:
+        serialized_results.append({
+            'destination':        DestinationSerializer(r['destination']).data,
+            'vote_count':         r['vote_count'],
+            'vote_pct':           r['vote_pct'],
+            'voters':             r['voters'],
+        })
+    
+    summary['results'] = serialized_results
+
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f'trip_votes_{trip.id}',
+            {
+                'type': 'vote_update',
+                'summary': summary
+            }
+        )
 
 def select_destination(trip: Trip, owner, destination_id: int) -> Trip:
     """
@@ -138,5 +175,19 @@ def select_destination(trip: Trip, owner, destination_id: int) -> Trip:
         # Store destination FK — add selected_destination FK to Trip model
         trip.selected_destination = destination
         trip.save(update_fields=['status', 'selected_destination', 'updated_at'])
+
+    from channels.layers import get_channel_layer
+    from asgiref.sync import async_to_sync
+    
+    channel_layer = get_channel_layer()
+    if channel_layer:
+        async_to_sync(channel_layer.group_send)(
+            f'trip_votes_{trip.id}',
+            {
+                'type': 'destination_selected',
+                'destination_id': destination.id,
+                'destination_name': destination.name
+            }
+        )
 
     return trip
