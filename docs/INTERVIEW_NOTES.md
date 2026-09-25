@@ -216,3 +216,17 @@ Scores depend on group preferences which change until voting begins. Storing sco
   - A: The engine returns neutral scores (0.5-0.7) for all factors with reason strings explaining the missing data. The UI still renders cards, just with "No preference data yet" explanations.
 - *Q: Why a management command instead of a fixture for seed data?*
   - A: Management commands are idempotent (`update_or_create`), can be extended with arguments (e.g., `--country=Indonesia`), and avoid the Django fixture format's quirks with `auto_now_add` fields.
+
+## Phase 6: Voting System
+
+### 1. What is it?
+A voting mechanism that allows each trip member to pick their favorite destination. The trip owner can monitor votes and definitively lock in the final destination for the group. 
+
+### 2. Implementation details
+- **Model Design**: `Vote` model with `unique_together` on (`trip`, `user`). We use a simple "pick your favorite" vote logic, avoiding the complexity of multi-votes while providing clear signals.
+- **Service Layer (`services.py`)**: Centralized business logic with `select_for_update` in a transaction. This strictly prevents race conditions if multiple users (or the same user via multiple rapid clicks) attempt to cast votes at the exact same millisecond.
+- **Summary Aggregation**: Instead of heavy query loops, vote counts are aggregated and linked per destination via Django ORM. We send back an array of summarized data (`vote_count`, `voters`, `current_user_voted`, `participation_pct`). 
+- **Destructive Updates**: When the owner selects the final destination, the `trip.status` upgrades to `DESTINATION_SELECTED`, which locks the UI. Future voting POSTs are rejected at the API level (400 BAD REQUEST).
+- **Frontend State**: Added `vote.js` Pinia store to handle summary fetching and optimistic UI. Display progress bar, individual voter chips on Destination Cards, and dynamic states (Voting Open vs Closed).
+- **Testing**: 17 unit tests verifying IDEMPOTENCY, ORM aggregation, and permission blocks (non-owners selecting destinations, non-members voting, etc.).
+
