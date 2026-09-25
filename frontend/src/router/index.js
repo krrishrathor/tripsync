@@ -59,6 +59,12 @@ const routes = [
     name: 'DestinationDiscovery',
     component: () => import('@/views/trips/DestinationDiscovery.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id/itinerary',
+    name: 'ItineraryView',
+    component: () => import('@/views/trips/ItineraryView.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

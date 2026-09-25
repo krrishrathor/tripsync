@@ -242,3 +242,15 @@ We integrated Django Channels and Redis to provide real-time updates when users 
 - **Service Layer Integration**: Whenever `cast_or_change_vote`, `remove_vote`, or `select_destination` succeeds, the backend triggers an `async_to_sync(channel_layer.group_send)` to broadcast the event.
 - **Frontend Reactive Store**: Pinia `voteStore` opens the WebSocket on mount of the `DestinationDiscovery` view. When it receives a `vote_update` message, it reactively merges the generic broadcast summary with the current user's local `my_vote` state to instantly update the UI.
 - **Testing**: Overrode `CHANNEL_LAYERS` in `settings.py` to use `InMemoryChannelLayer` when `sys.argv` contains `'test'` to prevent Redis connection errors during CI/CD or local test runs outside of docker.
+
+## Phase 8: AI Itinerary Generation (LangGraph)
+
+### 1. What is it?
+An AI-powered service that takes the finalized trip details (destination, length, aggregated group budget, and top interests) and generates a structured, day-by-day itinerary.
+
+### 2. Implementation details
+- **LangGraph Integration**: Built a state machine agent (`itinerary_agent`) that defines a workflow: `Generate Draft -> Review Draft`. This provides a much more robust pipeline than a standard single LLM call. The validator checks if the required days are generated and if activities exist. If they don't, it routes back to refinement.
+- **LLM Tooling**: Used `langchain-openai`. To accommodate reviewers who might not have an `OPENAI_API_KEY` injected into the environment, I provided a robust `_mock_generate` fallback inside the agent. If the key is missing, it skips the LLM and deterministically returns a mock itinerary so the UI flow can still be demonstrated without breaking.
+- **Data Models**: Created relational `Itinerary`, `DailyPlan`, and `Activity` models instead of a single massive JSONBlob. This ensures that the portfolio app mimics a true production app where users could eventually edit, drag/drop, or vote on specific activities within a day.
+- **Service Layer**: The `generate_itinerary_for_trip` service handles all the complex context building—fetching group preferences, calculating exact date deltas, mapping over interests, computing budget averages, calling the LangGraph, and unpacking the JSON result safely into the relational DB via an atomic transaction.
+- **UI**: Created a vertical timeline-style view (`ItineraryView.vue`) to elegantly display morning/afternoon/evening activities and an integrated generation button directly on the dashboard.

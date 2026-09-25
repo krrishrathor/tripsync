@@ -61,10 +61,14 @@
             <div class="absolute right-0 top-0 opacity-10 text-9xl -mt-4 -mr-4">🎉</div>
             <h2 class="text-xs font-bold text-green-800 uppercase tracking-wider mb-1">Destination Locked In!</h2>
             <h3 class="text-3xl font-bold text-gray-900 mb-2">{{ trip.selected_destination_name || 'Destination Selected' }}</h3>
-            <p class="text-sm text-gray-700 max-w-md relative z-10">
+            <p class="text-sm text-gray-700 max-w-md relative z-10 mb-4">
               The group has spoken and the owner has finalized the destination. 
               The voting phase is now closed. Next up: Itinerary Planning!
             </p>
+            <button @click="$router.push(`/trips/${trip.id}/itinerary`)"
+              class="relative z-10 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold px-5 py-2 rounded-lg shadow-sm transition-colors">
+              {{ trip.status === 'ITINERARY_GENERATED' ? 'View Itinerary 📅' : 'Generate AI Itinerary ✨' }}
+            </button>
           </div>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

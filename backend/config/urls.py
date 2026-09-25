@@ -12,5 +12,6 @@ urlpatterns = [
     path('api/trips/<uuid:trip_id>/preferences/', include('trip_preferences.urls')),
     path('api/trips/<uuid:trip_id>/', include(dest_trip_urlpatterns)),
     path('api/trips/<uuid:trip_id>/', include('voting.urls')),
+    path('api/trips/<uuid:trip_id>/itinerary/', include('itinerary.urls')),
     path('api/destinations/', include('travel_destinations.urls')),
 ]
