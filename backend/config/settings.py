@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'travel_destinations',
     'voting',
     'itinerary',
+    'expenses',
     # Internal apps (to be added)
 ]
 

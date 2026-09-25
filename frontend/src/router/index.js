@@ -65,6 +65,12 @@ const routes = [
     name: 'ItineraryView',
     component: () => import('@/views/trips/ItineraryView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/trips/:id/expenses',
+    name: 'ExpenseTracker',
+    component: () => import('@/views/trips/ExpenseTracker.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

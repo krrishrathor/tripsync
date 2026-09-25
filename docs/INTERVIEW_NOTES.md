@@ -254,3 +254,14 @@ An AI-powered service that takes the finalized trip details (destination, length
 - **Data Models**: Created relational `Itinerary`, `DailyPlan`, and `Activity` models instead of a single massive JSONBlob. This ensures that the portfolio app mimics a true production app where users could eventually edit, drag/drop, or vote on specific activities within a day.
 - **Service Layer**: The `generate_itinerary_for_trip` service handles all the complex context building—fetching group preferences, calculating exact date deltas, mapping over interests, computing budget averages, calling the LangGraph, and unpacking the JSON result safely into the relational DB via an atomic transaction.
 - **UI**: Created a vertical timeline-style view (`ItineraryView.vue`) to elegantly display morning/afternoon/evening activities and an integrated generation button directly on the dashboard.
+
+## Phase 9: Budget & Expenses (Settlements)
+
+### 1. What is it?
+A ledger and settlement engine that allows users to log expenses, specify exactly how much each person in the group owes, and then calculates the optimal way to settle those debts using a debt-simplification algorithm.
+
+### 2. Implementation details
+- **Models**: `Expense` and `ExpenseSplit`. `ExpenseSplit` allows tracking exact, non-equal splits among group members natively.
+- **Debt Simplification Algorithm**: Built entirely in standard Python without relying on pandas or external math libraries. It tallies net balances for all members, separates them into debtors (negative balance) and creditors (positive balance), and then uses a greedy algorithm (matching the largest debtor with the largest creditor) to emit a minimal list of repayment transactions.
+- **Atomic Transactions**: Ensured that the creation of the `Expense` and all its `ExpenseSplit` children are wrapped in `transaction.atomic()` inside `expenses/services.py` to prevent orphaned splits if the database errors midway.
+- **Frontend Form Logic**: Built a dynamic split calculator in Vue that reacts to checkboxes. By default, it splits the expense equally among selected members, but users can override the exact amounts. It auto-calculates rounding errors by dumping the remainder onto the last person.

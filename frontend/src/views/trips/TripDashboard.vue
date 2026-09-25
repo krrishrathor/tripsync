@@ -113,6 +113,21 @@
                 {{ trip.status === 'PLANNING' ? 'Discover & Vote →' : 'View Final Results →' }}
               </button>
             </div>
+
+            <!-- Expenses & Settlements -->
+            <div v-if="trip.status === 'DESTINATION_SELECTED' || trip.status === 'ITINERARY_GENERATED'" class="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col col-span-1 sm:col-span-2">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-2xl">💸</span>
+                <h3 class="font-semibold text-gray-900">Expenses & Settlements</h3>
+              </div>
+              <p class="text-sm text-gray-500 flex-1">
+                Log trip expenses, split them with the group, and automatically calculate who owes whom.
+              </p>
+              <button @click="$router.push(`/trips/${trip.id}/expenses`)"
+                class="mt-4 w-full text-sm bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 font-medium">
+                Track Expenses →
+              </button>
+            </div>
           </div>
         </div>
       </div>
