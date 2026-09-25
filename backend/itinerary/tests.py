@@ -54,9 +54,12 @@ class ItineraryTests(TestCase):
         self.client.force_authenticate(user=self.owner)
         response = self.client.post(f'/api/trips/{self.trip.id}/itinerary/generate/')
         
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn('days', response.data)
-        self.assertEqual(len(response.data['days']), 3)
+        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        
+        # In eager mode, the task actually ran, so the itinerary should be in the DB
+        self.trip.refresh_from_db()
+        self.assertEqual(self.trip.status, 'ITINERARY_GENERATED')
+        self.assertTrue(hasattr(self.trip, 'itinerary'))
 
     def test_member_cannot_generate_itinerary(self):
         self.client.force_authenticate(user=self.member)

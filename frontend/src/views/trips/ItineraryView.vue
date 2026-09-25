@@ -124,10 +124,12 @@ const authStore = useAuthStore();
 
 const itinerary = computed(() => itineraryStore.itinerary);
 const loading = computed(() => itineraryStore.loading || tripStore.loading);
-const generating = computed(() => itineraryStore.generating);
+const generating = computed(() => tripStore.currentTrip?.status === 'GENERATING_ITINERARY' || itineraryStore.generating);
 const error = computed(() => itineraryStore.error);
 
 const isOwner = computed(() => tripStore.currentTrip?.owner?.id === authStore.user?.id);
+
+let pollInterval = null;
 
 onMounted(async () => {
   if (!authStore.user) {
@@ -136,10 +138,35 @@ onMounted(async () => {
   const tripId = route.params.id;
   await tripStore.fetchTripDetail(tripId);
   await itineraryStore.fetchItinerary(tripId);
+  
+  if (tripStore.currentTrip?.status === 'GENERATING_ITINERARY') {
+    startPolling(tripId);
+  }
 });
+
+const startPolling = (tripId) => {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    await tripStore.fetchTripDetail(tripId);
+    if (tripStore.currentTrip?.status === 'ITINERARY_GENERATED') {
+      clearInterval(pollInterval);
+      await itineraryStore.fetchItinerary(tripId);
+    } else if (tripStore.currentTrip?.status !== 'GENERATING_ITINERARY') {
+      // Something failed or changed state back
+      clearInterval(pollInterval);
+    }
+  }, 3000);
+};
 
 const generateItinerary = async () => {
   const tripId = route.params.id;
   await itineraryStore.generateItinerary(tripId);
+  await tripStore.fetchTripDetail(tripId);
+  startPolling(tripId);
 };
+
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval);
+});
 </script>

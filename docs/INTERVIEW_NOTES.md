@@ -265,3 +265,14 @@ A ledger and settlement engine that allows users to log expenses, specify exactl
 - **Debt Simplification Algorithm**: Built entirely in standard Python without relying on pandas or external math libraries. It tallies net balances for all members, separates them into debtors (negative balance) and creditors (positive balance), and then uses a greedy algorithm (matching the largest debtor with the largest creditor) to emit a minimal list of repayment transactions.
 - **Atomic Transactions**: Ensured that the creation of the `Expense` and all its `ExpenseSplit` children are wrapped in `transaction.atomic()` inside `expenses/services.py` to prevent orphaned splits if the database errors midway.
 - **Frontend Form Logic**: Built a dynamic split calculator in Vue that reacts to checkboxes. By default, it splits the expense equally among selected members, but users can override the exact amounts. It auto-calculates rounding errors by dumping the remainder onto the last person.
+
+## Phase 10: Background Jobs (Celery)
+
+### 1. What is it?
+We moved the LangGraph itinerary generation—which can take 10-30 seconds depending on LLM response times—into an asynchronous Celery background task so it doesn't block the HTTP request and timeout the frontend.
+
+### 2. Implementation details
+- **Infrastructure**: Added `celery` and configured it to use `redis` as the broker and result backend.
+- **Asynchronous Task**: Wrapped `generate_itinerary_for_trip` in a `@shared_task`. When the trip owner clicks "Generate", the view immediately returns a `202 Accepted` and offloads the heavy lifting to the Celery worker queue.
+- **Frontend Reactive Polling**: Modified the Pinia `itineraryStore` and `ItineraryView.vue` to transition into a "Generating" loading state and poll the trip status every 3 seconds. Once the background worker completes the itinerary and updates the status to `ITINERARY_GENERATED`, the frontend breaks the polling loop and automatically fetches and renders the new data.
+- **Testing Resilience**: Configured `CELERY_TASK_ALWAYS_EAGER = True` and swapped the broker to `memory://` during tests so the test suite remains blisteringly fast and doesn't require a live Redis instance.

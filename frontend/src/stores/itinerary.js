@@ -30,13 +30,12 @@ export const useItineraryStore = defineStore('itinerary', {
       this.error = null;
       try {
         const res = await api.post(`/trips/${tripId}/itinerary/generate/`);
-        this.itinerary = res.data;
+        // Returns 202 Accepted, we will poll for the result
         return res.data;
       } catch (err) {
         this.error = err.response?.data?.detail || 'Failed to generate itinerary';
-        throw err;
-      } finally {
         this.generating = false;
+        throw err;
       }
     }
   }

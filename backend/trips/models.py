@@ -9,6 +9,7 @@ class Trip(models.Model):
     STATUS_CHOICES = [
         ('PLANNING', 'Planning'),
         ('DESTINATION_SELECTED', 'Destination Selected'),
+        ('GENERATING_ITINERARY', 'Generating Itinerary'),
         ('ITINERARY_GENERATED', 'Itinerary Generated'),
         ('COMPLETED', 'Completed'),
     ]

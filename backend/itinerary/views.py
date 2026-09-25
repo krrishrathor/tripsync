@@ -23,9 +23,16 @@ class GenerateItineraryView(APIView):
     def post(self, request, trip_id):
         trip = get_object_or_404(Trip, pk=trip_id)
         self.check_object_permissions(request, trip)
-        try:
-            itinerary = generate_itinerary_for_trip(trip)
-            serializer = ItinerarySerializer(itinerary)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if trip.status not in ['DESTINATION_SELECTED', 'ITINERARY_GENERATED']:
+            return Response({"detail": "Destination not finalized."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update status to indicate processing
+        trip.status = 'GENERATING_ITINERARY'
+        trip.save(update_fields=['status'])
+
+        # Trigger background task
+        from .tasks import generate_itinerary_task
+        generate_itinerary_task.delay(trip.id)
+        
+        return Response({"detail": "Itinerary generation started."}, status=status.HTTP_202_ACCEPTED)

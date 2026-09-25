@@ -11,7 +11,7 @@ def generate_itinerary_for_trip(trip: Trip):
     Gathers context from the trip, invokes the LangGraph agent,
     and persists the resulting itinerary to the database.
     """
-    if trip.status != 'DESTINATION_SELECTED':
+    if trip.status not in ['DESTINATION_SELECTED', 'GENERATING_ITINERARY']:
         raise ValueError("Cannot generate itinerary unless destination is selected.")
         
     if not trip.selected_destination:
