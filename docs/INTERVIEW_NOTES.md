@@ -286,3 +286,13 @@ Ensuring the application is production-ready by implementing strict API rate lim
 - **API Throttling**: Added `django-ratelimit` / DRF `AnonRateThrottle` (100/day) and `UserRateThrottle` (1000/day) to prevent API abuse and DDoS attacks.
 - **Backend Test Coverage**: Integrated `coverage.py`, configured `.coveragerc`, and ran a full suite. The backend currently boasts an exceptional **88% test coverage** across all core apps (voting, itinerary, destinations, trip preferences, expenses).
 - **Frontend Testing**: Set up `Vitest` and `@vue/test-utils` seamlessly with Vite. Written component specs for complex visual components (`DestinationCard.vue`), mocking deeply nested data structures to ensure robustness.
+
+## Phase 12: Documentation & Polish
+
+### 1. What is it?
+The final wrap-up phase designed to make the repository accessible, professional, and deployable. 
+
+### 2. Implementation details
+- **README**: Crafted a comprehensive Markdown file outlining the business problem, architectural decisions, core features, local setup, and Docker deployment.
+- **Docker**: Ensured `docker-compose.yml`, `.env.example`, and both `backend.Dockerfile` / `frontend.Dockerfile` successfully orchestrate the 5-container architecture (Postgres, Redis, Django, Celery, Vue).
+- **Security Check**: Verified that no hardcoded credentials or API keys exist in the repository.

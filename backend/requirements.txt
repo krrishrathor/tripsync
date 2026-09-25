@@ -18,6 +18,7 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.4.0
 constantly==23.10.4
+coverage==7.16.1
 cryptography==50.0.1
 daphne==4.2.3
 distro==1.9.0
@@ -33,6 +34,7 @@ httpx2==2.13.1
 hyperlink==21.0.0
 idna==3.20
 Incremental==24.11.0
+iniconfig==2.3.0
 jiter==0.17.0
 jsonpatch==1.33
 jsonpointer==3.1.1
@@ -51,13 +53,17 @@ openai==3.19.2
 orjson==3.12.0
 ormsgpack==1.12.2
 packaging==26.3
+pluggy==1.6.0
 prompt_toolkit==3.0.53
 psycopg2-binary==2.9.13
 pycparser==3.0
 pydantic==2.13.5
 pydantic_core==2.46.5
+Pygments==2.21.0
 PyJWT==2.14.0
 pyOpenSSL==26.4.0
+pytest==9.1.1
+pytest-django==4.14.0
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
 redis==8.1.0
